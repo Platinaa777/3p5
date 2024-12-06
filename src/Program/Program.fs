@@ -3,10 +3,8 @@ open FParsec
 
 let test parser strInput =
     match run parser strInput with
-    | Success (result, _, _) -> printfn "%O" result
-    | Failure (error, _, _) -> printfn "%s" error
-
-// VALUE TEST
+    | Success (result, _, _) -> printfn $"{result}"
+    | Failure (error, _, _) -> printfn $"%s{error}"
 
 printfn "Test 1: Parsing simple values\n"
 
@@ -25,8 +23,6 @@ let x1_4 = test Parser.pFloat "3.21312312321"
 printfn "value: 51312312"
 let x1_5 = test Parser.pInt "51312312"
 
-// LITERAL TEST
-
 printfn "\nTest 2: Parsing literal expressions\n"
 
 printfn "string literal: \"dsada\""
@@ -44,16 +40,16 @@ let x2_4 = test Parser.pExpr "123123"
 printfn "float literal: 3.141231232131"
 let x2_5 = test Parser.pExpr "3.141231232131"
 
-printfn "\nTest 3: Parsing variable expressions\n"
+printfn "\nTest 3: Testing Let\n"
 
 printfn "x variable"
-let x3_1 = test Parser.pExpr "x"
+let x3_1 = test Parser.pStatement "let x = 1"
 
 printfn "xx1323123 variable"
-let x3_2 = test Parser.pExpr "x1323123"
+let x3_2 = test Parser.pStatement "let x1323123 = 2"
 
 printfn "_x132 variable"
-let x3_3 = test Parser.pExpr "_x132"
+let x3_3 = test Parser.pStatement "let _x132 = 3132"
 
 printfn "\nTest 4: Parsing binary expressions\n"
 
@@ -69,13 +65,83 @@ let x4_3 = test Parser.pExpr "y / x"
 printfn "case y and x"
 let x4_4 = test Parser.pExpr "y and x"
 
-printfn "\nTest 5: Parsing assignment\n"
+printfn "\nTest 5: Let testing and difficult operations\n"
 
-printfn "case 'x = 5'"
-let x5_1 = test Parser.pStatement "x = 5"
+printfn "case 'let x = 5'"
+let x5_1 = test Parser.pStatement "let x = 5"
 
-printfn "case 'x = 1 + 5'"
-let x5_2 = test Parser.pStatement "x = 1 + 5"
+printfn "case 'let x = 1 + 5'"
+let x5_2 = test Parser.pStatement "let x = 1 + 5"
 
-printfn "case 'x = y + z'"
-let x5_3 = test Parser.pStatement "x = y + z"
+printfn "case 'let x = y + z'"
+let x5_3 = test Parser.pStatement "let x = y + z"
+
+printfn "case 'let x = (y + z) + t'"
+let x5_4 = test Parser.pStatement "let x = (y + z) + t"
+
+printfn "case 'let x = (y + z) + (t + d)'"
+let x5_5 = test Parser.pStatement "let x = (y + z) + (t + d)"
+
+printfn "case 'let x = (y + z) + (t + d) + 5'"
+let x5_6 = test Parser.pStatement "let x = (y + z) + (t + d) + 5"
+
+printfn "case 'let x = (((y + z) + t) + 5)'"
+let x5_7 = test Parser.pStatement "let x = (((y + z) + t) + 5)"
+
+printfn "case 'let x = 1 + 2 + 3'"
+let x5_8 = test Parser.pStatement "let x = 1 + 2 + 3"
+
+printfn "\nTest 6: If condition\n"
+
+let cond1 = "
+if x == 5 {
+    let z = 10
+} else {
+    let t = 5
+}
+"
+
+printfn $"\n%A{cond1}\n"
+let x6_1 = test Parser.pStatement cond1
+
+let cond2 = "
+if x == 5 {
+    let z = 10
+}
+let t = 5
+"
+
+printfn $"\n%A{cond2}\n"
+let x6_2 = test Parser.pStatement cond2
+
+let cond3 = "
+if x >= 5 {
+    let z = 10
+} else {
+    let t = 5
+}
+"
+printfn $"\n%A{cond3}\n"
+let x6_3 = test Parser.pStatement cond3
+
+let cond4 = "
+if x == 5 {
+    let z = 10
+    if (x != 10) {
+        let xx = 123
+    }
+} else {
+    let t = 5
+}
+"
+
+printfn $"\n%A{cond4}\n"
+let x6_4 = test Parser.pStatement cond4
+
+printfn "\nTest 7: ConsoleWrite testing\n"
+
+printfn "case: ConsoleWrite x + 5"
+let x7_1 = test Parser.pStatement "ConsoleWrite x + 5"
+
+printfn "case: ConsoleWrite (x + 5)"
+let x7_2 = test Parser.pStatement "ConsoleWrite (x + 5)"
