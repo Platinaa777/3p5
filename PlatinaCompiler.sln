@@ -8,6 +8,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ParserTests", "tests\Parser
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Interpreter", "src\Interpreter\Interpreter.fsproj", "{0362D1CB-2897-4132-B702-21D008CEE44B}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "InterpreterTests", "tests\InterpreterTests\InterpreterTests.fsproj", "{6A51BC05-FBCC-4B9F-B05A-D6CABC078180}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{0362D1CB-2897-4132-B702-21D008CEE44B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0362D1CB-2897-4132-B702-21D008CEE44B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0362D1CB-2897-4132-B702-21D008CEE44B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A51BC05-FBCC-4B9F-B05A-D6CABC078180}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A51BC05-FBCC-4B9F-B05A-D6CABC078180}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A51BC05-FBCC-4B9F-B05A-D6CABC078180}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A51BC05-FBCC-4B9F-B05A-D6CABC078180}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
