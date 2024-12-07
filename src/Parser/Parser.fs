@@ -43,7 +43,7 @@ and
     Scope = Statement list
     
 type Closure =
-    Closure of parameters:Id list * body:Scope * env:Environment 
+    Closure of parameters:Id list * body:Scope * env:Environment
 and
     Environment = Environment of context: Map<Id, Expression> * functions: Map<Id, Closure>
 
@@ -87,7 +87,7 @@ module Parser =
     
     // I want that variable can start with default char, @ or underscore
     let validVarFirstChar c = Char.IsLetter(c) || c.Equals('@') || c.Equals('_')
-    let pVar = many1Satisfy2 validVarFirstChar Char.IsLetterOrDigit .>> ss;
+    let pVar: Parser<string, Unit> = many1Satisfy2 validVarFirstChar Char.IsLetterOrDigit .>> ss;
     
     // for variable case
     let pVariableExpr: Parser<Expression, Unit> = pVar |>> VariableExpr .>> ss
@@ -150,7 +150,7 @@ module Parser =
             
     let pLet: Parser<Statement, Unit> =
         pipe2
-            (pStr "let" >>. pVar .>> pStr "=")
+            (ss >>. pStr "let" >>. pVar .>> pStr "=")
             pExpr
             (fun name expr ->
                 // printfn $"name: %A{name} ||| expr: %A{expr}" // debugging
@@ -171,14 +171,6 @@ module Parser =
     let pConsoleWrite: Parser<Statement, Unit> =
         pStr "ConsoleWrite" >>. pExpr |>> ConsoleWrite
         
-    let createFunctionClosure (name: Id) (parameters:Id list) (body: Scope) (env: Environment)  =
-        let closure = Closure(parameters, body, env)
-        match env with
-            | Environment(context, functions) -> 
-            let updatedFunctions = Map.add name closure functions
-            let updatedEnv = Environment(context, updatedFunctions)
-            updatedEnv
-        
     let pFuncDef: Parser<Statement, Unit> =
         pipe3
             (ss >>. pStr "func" >>. pVar)
@@ -193,13 +185,10 @@ module Parser =
             (fun funcName args -> FuncCall(funcName, args))
                     
     do pStatementRef.Value <- choice [
-            pLet;
+            attempt pLet;
             attempt pCondition;
             pConsoleWrite;
             attempt pFuncDef
             pFuncCall;
         ]
-    
-    
-    
     
