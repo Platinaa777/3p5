@@ -32,18 +32,20 @@ type Expression =
     | LiteralExpr of value:Value
     | VariableExpr of name:Id
     | OperationExpr of left_operand:Expression * operator:Operator * right_operand:Expression
-    | LambdaExpr of parameters:Id list * body:Scope
-    | AppExpr of arguments:Expression list * func:Expression
-    | FuncExpr of func_name:string * parameters:Id list * body:Scope
-    
-and Statement =
+and
+    Statement =
     | Condition of condition:Expression * true_scope:Scope * false_scope:Scope option
     | ConsoleWrite of message:Expression
     | Let of var_name:string * value:Expression
+    | FuncDef of name:Id * parameters:Id list * body:Scope
+    | FuncCall of func_name:Id * arguments:Expression list
+and
+    Scope = Statement list
     
-and Scope = Statement list
-and Closure = Closure of parameters:Id list * body:Scope * env:Environment 
-and Environment = Environment of context: Map<Id, Expression>
+type Closure =
+    Closure of parameters:Id list * body:Scope * env:Environment 
+and
+    Environment = Environment of context: Map<Id, Expression> * functions: Map<Id, Closure>
 
 module Parser =
     let ss = spaces // only for me
@@ -77,8 +79,9 @@ module Parser =
             pInt;
             pBool;
             pString
-        ]     
-    
+        ]
+        
+    let pExpr, pExprRef = createParserForwardedToRef<Expression, Unit>()
     // for literal case
     let pLiteralExpr: Parser<Expression, Unit> = pValue |>> LiteralExpr .>> ss
     
@@ -88,7 +91,7 @@ module Parser =
     
     // for variable case
     let pVariableExpr: Parser<Expression, Unit> = pVar |>> VariableExpr .>> ss
-    
+        
     let operatorMap =
         dict [
             "+", Add
@@ -111,8 +114,8 @@ module Parser =
 
     let termParser =
         choice [
-            pLiteralExpr
-            pVariableExpr
+            pLiteralExpr;
+            pVariableExpr;
             between (pStr "(") (pStr ")") operatorParser.ExpressionParser
         ]
 
@@ -143,7 +146,7 @@ module Parser =
     addBinaryOperator "and" 2 al
     addBinaryOperator "or" 1 al
 
-    let pExpr = operatorParser.ExpressionParser
+    do pExprRef.Value <- operatorParser.ExpressionParser
             
     let pLet: Parser<Statement, Unit> =
         pipe2
@@ -168,11 +171,35 @@ module Parser =
     let pConsoleWrite: Parser<Statement, Unit> =
         pStr "ConsoleWrite" >>. pExpr |>> ConsoleWrite
         
+    let createFunctionClosure (name: Id) (parameters:Id list) (body: Scope) (env: Environment)  =
+        let closure = Closure(parameters, body, env)
+        match env with
+            | Environment(context, functions) -> 
+            let updatedFunctions = Map.add name closure functions
+            let updatedEnv = Environment(context, updatedFunctions)
+            updatedEnv
+        
+    let pFuncDef: Parser<Statement, Unit> =
+        pipe3
+            (ss >>. pStr "func" >>. pVar)
+            (between (pStr "[") (pStr "]") (sepBy pVar (pStr ",")))
+            pBlock
+            (fun name parameters body -> FuncDef(name, parameters, body))
+            
+    let pFuncCall: Parser<Statement, Unit> =
+        pipe2
+            (ss >>. pVar)
+            (between (pStr "[") (pStr "]") (sepBy pExpr (pStr ",")))
+            (fun funcName args -> FuncCall(funcName, args))
+                    
     do pStatementRef.Value <- choice [
             pLet;
-            pCondition;
+            attempt pCondition;
             pConsoleWrite;
+            attempt pFuncDef
+            pFuncCall;
         ]
+    
     
     
     
