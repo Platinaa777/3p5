@@ -32,22 +32,24 @@ type Expression =
     | LiteralExpr of value:Value
     | VariableExpr of name:Id
     | OperationExpr of left_operand:Expression * operator:Operator * right_operand:Expression
-    | LambdaExpr of parameters:Id list * body:Scope
-    | AppExpr of arguments:Expression list * func:Expression
-    | FuncExpr of func_name:string * parameters:Id list * body:Scope
-    
-and Statement =
+and
+    Statement =
     | Condition of condition:Expression * true_scope:Scope * false_scope:Scope option
     | ConsoleWrite of message:Expression
-    | Assign of var_name:string * value:Expression
-    | While of condition:Expression * body:Scope
+    | Let of var_name:string * value:Expression
+    | FuncDef of name:Id * parameters:Id list * body:Scope
+    | FuncCall of func_name:Id * arguments:Expression list
+and
+    Scope = Statement list
     
-and Scope = Statement list
-and Closure = Closure of parameters:Id list * body:Scope * env:Environment 
-and Environment = Environment of context: Map<Id, Expression> * parent_context:Option<Environment>
+type Closure =
+    Closure of parameters:Id list * body:Scope * env:Environment 
+and
+    Environment = Environment of context: Map<Id, Expression> * functions: Map<Id, Closure>
 
 module Parser =
     let ss = spaces // only for me
+    let pStr str = pstring str .>> ss // for simplicity in code below
     
     // Numbers parsers
     let pInt: Parser<Value, Unit> = pint32 .>> ss |>> Int
@@ -77,63 +79,127 @@ module Parser =
             pInt;
             pBool;
             pString
-        ]     
-    
+        ]
+        
+    let pExpr, pExprRef = createParserForwardedToRef<Expression, Unit>()
     // for literal case
     let pLiteralExpr: Parser<Expression, Unit> = pValue |>> LiteralExpr .>> ss
     
-    // i want that variable can start with default char, @ or underscore
+    // I want that variable can start with default char, @ or underscore
     let validVarFirstChar c = Char.IsLetter(c) || c.Equals('@') || c.Equals('_')
+    let pVar = many1Satisfy2 validVarFirstChar Char.IsLetterOrDigit .>> ss;
     
     // for variable case
-    let pVariableExpr: Parser<Expression, Unit> = many1Satisfy2 validVarFirstChar Char.IsLetterOrDigit |>> VariableExpr .>> ss
+    let pVariableExpr: Parser<Expression, Unit> = pVar |>> VariableExpr .>> ss
+        
+    let operatorMap =
+        dict [
+            "+", Add
+            "-", Subtract
+            "*", Multiply
+            "/", Divide
+            "%", Mod
+            ">", GreaterThan
+            "<", LessThan
+            ">=", GreaterThanOrEqual
+            "<=", LessThanOrEqual
+            "==", Equal
+            "!=", NotEqual
+            "and", And
+            "or", Or
+        ]
     
-    let pOperator =
-        choice [
-            stringReturn "+" Add
-            stringReturn "-" Subtract
-            stringReturn "*" Multiply
-            stringReturn "/" Divide
-            stringReturn "%" Mod
+    // for precendence (define in fparsec library)
+    let operatorParser = OperatorPrecedenceParser<Expression, Unit, Unit>()
 
-            stringReturn ">" GreaterThan
-            stringReturn "<" LessThan
-            stringReturn ">=" GreaterThanOrEqual
-            stringReturn "<=" LessThanOrEqual
-            stringReturn "==" Equal
-            stringReturn "!=" NotEqual
-
-            // like python :D
-            stringReturn "and" And
-            stringReturn "or" Or
-        ] .>> ss
-    
-    // parsing left operand, operator, operand
-    let pBinaryExpr: Parser<Expression, Unit> =
-        pipe3
-            (pLiteralExpr <|> pVariableExpr)
-            pOperator
-            (pLiteralExpr <|> pVariableExpr)
-            (fun left op right -> OperationExpr (left, op, right))
-    
-    let pExpr =
+    let termParser =
         choice [
-            attempt pBinaryExpr
             pLiteralExpr;
             pVariableExpr;
+            between (pStr "(") (pStr ")") operatorParser.ExpressionParser
         ]
-        
-    let pAssign: Parser<Statement, Unit> =
-        let identifier =
-            many1Satisfy2 validVarFirstChar Char.IsLetterOrDigit
-            .>> ss
 
+    operatorParser.TermParser <- termParser
+
+    let addBinaryOperator opStrValue precedence associativity =
+        match operatorMap.TryGetValue(opStrValue) with
+        | true, operator ->
+            operatorParser.AddOperator(
+                InfixOperator(opStrValue, ss, precedence, associativity, (fun left right -> OperationExpr(left, operator, right)))
+            )
+        | false, _ ->
+            failwithf $"Unknown operator: %s{opStrValue}"
+
+    let al = Associativity.Left
+    
+    addBinaryOperator "+" 4 al
+    addBinaryOperator "-" 4 al
+    addBinaryOperator "*" 5 al
+    addBinaryOperator "/" 5 al
+    addBinaryOperator "%" 5 al
+    addBinaryOperator ">" 3 al
+    addBinaryOperator "<" 3 al
+    addBinaryOperator ">=" 3 al
+    addBinaryOperator "<=" 3 al
+    addBinaryOperator "==" 3 al
+    addBinaryOperator "!=" 3 al
+    addBinaryOperator "and" 2 al
+    addBinaryOperator "or" 1 al
+
+    do pExprRef.Value <- operatorParser.ExpressionParser
+            
+    let pLet: Parser<Statement, Unit> =
         pipe2
-            (identifier .>> pstring "=" .>> ss)
+            (pStr "let" >>. pVar .>> pStr "=")
             pExpr
-            (fun name expr -> Assign(name, expr))
+            (fun name expr ->
+                // printfn $"name: %A{name} ||| expr: %A{expr}" // debugging
+                Let(name, expr))
+            
+    let pStatement, pStatementRef = createParserForwardedToRef<Statement, Unit>()
+    
+    let pBlock: Parser<Statement list, Unit> =
+        ss >>. between (pStr "{") (pStr "}") (many pStatement)
+    
+    let pCondition: Parser<Statement, Unit> =
+        pipe3
+            (ss >>. pStr "if" >>. pExpr)
+            pBlock
+            (pStr "else" >>. pBlock |> opt) // opt because the else block cannot be 
+            (fun cond body _else -> Condition(cond, body, _else))
 
-    let pStatement =
-        choice [
-            pAssign
+    let pConsoleWrite: Parser<Statement, Unit> =
+        pStr "ConsoleWrite" >>. pExpr |>> ConsoleWrite
+        
+    let createFunctionClosure (name: Id) (parameters:Id list) (body: Scope) (env: Environment)  =
+        let closure = Closure(parameters, body, env)
+        match env with
+            | Environment(context, functions) -> 
+            let updatedFunctions = Map.add name closure functions
+            let updatedEnv = Environment(context, updatedFunctions)
+            updatedEnv
+        
+    let pFuncDef: Parser<Statement, Unit> =
+        pipe3
+            (ss >>. pStr "func" >>. pVar)
+            (between (pStr "[") (pStr "]") (sepBy pVar (pStr ",")))
+            pBlock
+            (fun name parameters body -> FuncDef(name, parameters, body))
+            
+    let pFuncCall: Parser<Statement, Unit> =
+        pipe2
+            (ss >>. pVar)
+            (between (pStr "[") (pStr "]") (sepBy pExpr (pStr ",")))
+            (fun funcName args -> FuncCall(funcName, args))
+                    
+    do pStatementRef.Value <- choice [
+            pLet;
+            attempt pCondition;
+            pConsoleWrite;
+            attempt pFuncDef
+            pFuncCall;
         ]
+    
+    
+    
+    
