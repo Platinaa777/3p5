@@ -31,6 +31,16 @@ let result_1_2 = evaluateTree tree_1_2
 
 ln()
 
+let code_1_3 = "
+let x = 5
+ConsoleWrite \"Hi! \" * x
+"
+pr(code_1_3)
+let tree_1_3 = Parser.parseCode code_1_3
+let result_1_3 = evaluateTree tree_1_3
+
+ln()
+
 printfn "Test 2: If conditions\n"
 
 let code_2_1 = "

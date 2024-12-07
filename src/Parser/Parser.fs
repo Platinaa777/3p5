@@ -43,7 +43,8 @@ module Parser =
     let pStr str = pstring str .>> ss // for simplicity in code below
     
     // Numbers parsers
-    let pInt: Parser<Value, Unit> = pint32 .>> ss |>> Int
+    let pInt: Parser<Value, Unit> =
+        pint32 .>> notFollowedBy (pchar '.') .>> ss |>> Int
     let pFloat: Parser<Value, Unit> = pfloat .>> ss |>> Float
     
     // boolean parser
@@ -66,8 +67,8 @@ module Parser =
     // common parser for all Value types
     let pValue: Parser<Value, Unit> =
         choice [
+            attempt pInt;
             pFloat;
-            pInt;
             pBool;
             pString
         ]
