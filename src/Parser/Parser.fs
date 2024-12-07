@@ -34,18 +34,11 @@ type Expression =
     | OperationExpr of left_operand:Expression * operator:Operator * right_operand:Expression
 and
     Statement =
-    | Condition of condition:Expression * true_scope:Scope * false_scope:Scope option
+    | Condition of condition:Expression * true_scope:Statement list * false_scope:Statement list option
     | ConsoleWrite of message:Expression
     | Let of var_name:string * value:Expression
-    | FuncDef of name:Id * parameters:Id list * body:Scope
+    | FuncDef of name:Id * parameters:Id list * body:Statement list
     | FuncCall of func_name:Id * arguments:Expression list
-and
-    Scope = Statement list
-    
-type Closure =
-    Closure of parameters:Id list * body:Scope * env:Environment
-and
-    Environment = Environment of context: Map<Id, Expression> * functions: Map<Id, Closure>
 
 module Parser =
     let ss = spaces // only for me
@@ -158,14 +151,14 @@ module Parser =
             
     let pStatement, pStatementRef = createParserForwardedToRef<Statement, Unit>()
     
-    let pBlock: Parser<Statement list, Unit> =
+    let pScope: Parser<Statement list, Unit> =
         ss >>. between (pStr "{") (pStr "}") (many pStatement)
     
     let pCondition: Parser<Statement, Unit> =
         pipe3
             (ss >>. pStr "if" >>. pExpr)
-            pBlock
-            (pStr "else" >>. pBlock |> opt) // opt because the else block cannot be 
+            pScope
+            (pStr "else" >>. pScope |> opt) // opt because the else block cannot be 
             (fun cond body _else -> Condition(cond, body, _else))
 
     let pConsoleWrite: Parser<Statement, Unit> =
@@ -175,7 +168,7 @@ module Parser =
         pipe3
             (ss >>. pStr "func" >>. pVar)
             (between (pStr "[") (pStr "]") (sepBy pVar (pStr ",")))
-            pBlock
+            pScope
             (fun name parameters body -> FuncDef(name, parameters, body))
             
     let pFuncCall: Parser<Statement, Unit> =
@@ -192,3 +185,7 @@ module Parser =
             pFuncCall;
         ]
     
+    let parseCode (str: string): Result<Statement list, string> =
+        match run (many pStatement) str with
+        | Success (result, _, _) -> Result.Ok result
+        | Failure (err, _, _) -> Result.Error err

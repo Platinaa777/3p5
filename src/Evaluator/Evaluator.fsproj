@@ -6,7 +6,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Interpreter.fs" />
+        <Compile Include="Evaluator.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Parser\Parser.fsproj" />
     </ItemGroup>
 
 </Project>

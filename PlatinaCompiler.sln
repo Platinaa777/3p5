@@ -6,9 +6,9 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Parser", "src\Parser\Parser
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ParserTests", "tests\ParserTests\ParserTests.fsproj", "{289E2A91-C40E-46A0-B440-D6AA0A53B8FC}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Interpreter", "src\Interpreter\Interpreter.fsproj", "{0362D1CB-2897-4132-B702-21D008CEE44B}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Evaluator", "src\Evaluator\Evaluator.fsproj", "{0362D1CB-2897-4132-B702-21D008CEE44B}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "InterpreterTests", "tests\InterpreterTests\InterpreterTests.fsproj", "{6A51BC05-FBCC-4B9F-B05A-D6CABC078180}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "EvaluatorTests", "tests\EvaluatorTests\EvaluatorTests.fsproj", "{6A51BC05-FBCC-4B9F-B05A-D6CABC078180}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
