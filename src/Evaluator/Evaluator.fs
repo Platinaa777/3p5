@@ -128,14 +128,14 @@ module Evaluator =
             let conditionResult, _ = eval expression env
             match conditionResult with
             | Bool(true) ->
-                let _, finalEnv = evalScope trueScope env
-                (Bool(true), finalEnv)
+                let v, finalEnv = evalScope trueScope env
+                (v, finalEnv)
             | Bool(false) ->
-                let _, finalEnv = 
+                let v, finalEnv = 
                     match falseScope with
                     | Some scope -> evalScope scope env
                     | None -> unit env // no else block
-                (Bool(false), finalEnv)
+                (v, finalEnv)
             | _ -> failwith "Condition expression must evaluate to a boolean"
        | Dump(message) ->
             let messageResult, _ = eval message env
@@ -172,7 +172,17 @@ module Evaluator =
                | _ -> failwith $"Unhandled expression in Return: %A{result}"
     and
         private evalScope (scope: Expression list) (initEnv: Environment) : Value * Environment =
-            List.fold (fun (_, env) expr -> eval expr env) (unit initEnv) scope
+            let rec evalWithReturn (expressions: Expression list) (env: Environment): Value * Environment =
+                match expressions with
+                | [] -> unit env
+                | expr::rest ->
+                    match eval expr env with
+                    | value, newEnv ->
+                        match expr with
+                        | Return _ -> (value, newEnv)
+                        | _ -> evalWithReturn rest newEnv
+            evalWithReturn scope initEnv
+            // List.fold (fun (_, env) expr -> eval expr env) (unit initEnv) scope
     and
         private handleFuncCallCase (funcName: Id) (arguments: Expression list) (env: Environment) =
         match env with
@@ -191,7 +201,8 @@ module Evaluator =
                             List.zip parameters evaluatedArgs
                             |> List.fold (fun acc (param, value) -> Map.add param value acc) context
                         let newEnv = Environment(newContext, functions)
-                        evalScope body newEnv
+                        let result, e = evalScope body newEnv
+                        (result, e)
                 | None ->
                     failwithf $"Function %s{funcName} not found"
     and
@@ -199,7 +210,8 @@ module Evaluator =
            let leftExprResult, _ = eval left env
            let rightExprResult, _ = eval right env
            let func = funof op
-           ((func leftExprResult rightExprResult), env)
+           let value = func leftExprResult rightExprResult 
+           (value, env)
     
     let evaluate (astTree: Expression list) =
         let initEnv = Environment(Map.empty, Map.empty)

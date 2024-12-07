@@ -110,7 +110,7 @@ module Parser =
             (ss >>. pVar)
             (between (pStr "[") (pStr "]") (sepBy pExpr (pStr ",")))
             (fun funcName args ->
-                printfn $"Parsed function call: {funcName} with args: {args}" // debugging
+                // printfn $"Parsed function call: {funcName} with args: {args}" // debugging
                 FuncCall(funcName, args))
     
     let termParser =

@@ -119,21 +119,38 @@ let pr (str: string) = printfn $"%A{str}"
 // let result_3_1 = evaluateTree tree_3_1
 //
 // ln()
+//
+// let code_3_2 = "
+// func printSum [a,b] {
+//     return (a + b)
+// }
+//
+// let x = printSum[100,300]
+// dump x
+// "
+// pr(code_3_2)
+// let tree_3_2 = Parser.parseCode code_3_2
+// let result_3_2 = evaluateTree tree_3_2
+//
+// ln()
 
-let code_3_2 = "
+let code_3_3 = "
 func fact [n] {
     dump n
-    if n == 0 {
+    if n == 1 {
         return 1
     } else {
-        return (n * fact[n - 1])
+        let f = fact[n - 1]
+        return (n * f)
     }
 }
 
-fact[5]
+let res = fact[5]
+dump \"result:\"
+dump res
 "
-pr(code_3_2)
-let tree_3_2 = Parser.parseCode code_3_2
-let result_3_2 = evaluateTree tree_3_2
+pr(code_3_3)
+let tree_3_3 = Parser.parseCode code_3_3
+let result_3_3 = evaluateTree tree_3_3
 
 ln()
