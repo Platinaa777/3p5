@@ -34,7 +34,7 @@ type Expression =
     | Operation of left_operand:Expression * operator:Operator * right_operand:Expression
     | Condition of condition:Expression * true_scope:Expression list * false_scope:Expression list option
     | ConsoleWrite of message:Expression
-    | Let of var_name:string * value:Expression
+    | Let of var_name:string * valueExpr:Expression
     | FuncDef of name:Id * parameters:Id list * body:Expression list
     | FuncCall of func_name:Id * arguments:Expression list
 
