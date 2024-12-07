@@ -33,10 +33,11 @@ type Expression =
     | Variable of name:Id
     | Operation of left_operand:Expression * operator:Operator * right_operand:Expression
     | Condition of condition:Expression * true_scope:Expression list * false_scope:Expression list option
-    | ConsoleWrite of message:Expression
+    | Dump of message:Expression
     | Let of var_name:string * valueExpr:Expression
     | FuncDef of name:Id * parameters:Id list * body:Expression list
     | FuncCall of func_name:Id * arguments:Expression list
+    | Return of result:Expression
 
 module Parser =
     let ss = spaces // only for me
@@ -104,11 +105,20 @@ module Parser =
     // for precedence (define in fparsec library)
     let operatorParser = OperatorPrecedenceParser<Expression, Unit, Unit>()
 
+    let pFuncCall: Parser<Expression, Unit> =
+        pipe2
+            (ss >>. pVar)
+            (between (pStr "[") (pStr "]") (sepBy pExpr (pStr ",")))
+            (fun funcName args ->
+                printfn $"Parsed function call: {funcName} with args: {args}" // debugging
+                FuncCall(funcName, args))
+    
     let termParser =
         choice [
+            attempt pFuncCall;
             pLiteralExpr;
             pVariableExpr;
-            between (pStr "(") (pStr ")") operatorParser.ExpressionParser
+            between (pStr "(") (pStr ")") operatorParser.ExpressionParser;
         ]
 
     operatorParser.TermParser <- termParser
@@ -156,8 +166,8 @@ module Parser =
             (pStr "else" >>. pScope |> opt) // opt because the else block cannot be 
             (fun cond body _else -> Condition(cond, body, _else))
 
-    let pConsoleWrite: Parser<Expression, Unit> =
-        pStr "ConsoleWrite" >>. pExpr |>> ConsoleWrite
+    let pDump: Parser<Expression, Unit> =
+        pStr "dump" >>. pExpr |>> Dump
         
     let pFuncDef: Parser<Expression, Unit> =
         pipe3
@@ -165,20 +175,18 @@ module Parser =
             (between (pStr "[") (pStr "]") (sepBy pVar (pStr ",")))
             pScope
             (fun name parameters body -> FuncDef(name, parameters, body))
-            
-    let pFuncCall: Parser<Expression, Unit> =
-        pipe2
-            (ss >>. pVar)
-            (between (pStr "[") (pStr "]") (sepBy pExpr (pStr ",")))
-            (fun funcName args -> FuncCall(funcName, args))
+                    
+    let pReturn: Parser<Expression, Unit> =
+        pStr "return" >>. pExpr |>> Return
                     
     do pExprRef.Value <- choice [
             attempt pLet
-            attempt pConsoleWrite;
+            attempt pDump;
             attempt pFuncDef;
-            attempt pCondition
-            attempt pFuncCall;
-            attempt operatorParser.ExpressionParser;
+            attempt pCondition;
+            attempt pFuncCall
+            attempt pReturn;
+            attempt operatorParser.ExpressionParser
         ]
     
     let parseCode (str: string): Result<Expression list, string> =
