@@ -6,6 +6,11 @@ let test parser strInput =
     | Success (result, _, _) -> printfn $"{result}"
     | Failure (error, _, _) -> printfn $"%s{error}"
 
+let testMany parser strInput =
+    match run (many parser) strInput with
+    | Success (result, _, _) -> printfn $"{result}"
+    | Failure (error, _, _) -> printfn $"%s{error}"
+
 printfn "Test 1: Parsing simple values\n"
 
 printfn "value: \"code1da sdas das dsada\""
@@ -199,3 +204,41 @@ f [1, 2]
 "
 printfn $"\n%A{funcCall3}\n"
 let x9_3 = test Parser.pStatement funcCall3
+
+printfn "\nTest 10: Test many statements\n"
+
+let manyCode1 = "
+if (x == 5) {
+    let z = 5
+}
+
+let x = 5
+
+func f [a,b] {
+    let c = a + b
+}
+"
+
+printfn $"\n%A{manyCode1}\n"
+let x10_1 = testMany Parser.pStatement manyCode1
+
+let manyCode2 = "
+let x = 5
+let y = 10
+let z = x + y
+"
+
+printfn $"\n%A{manyCode2}\n"
+let x10_2 = testMany Parser.pStatement manyCode2
+
+let manyCode3 = "
+func f1 [a,b] {
+    let c = a + b
+}
+func f2 [x,y] {
+    let zz = x + y
+}
+"
+
+printfn $"\n%A{manyCode3}\n"
+let x10_3 = testMany Parser.pStatement manyCode3
