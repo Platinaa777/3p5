@@ -109,6 +109,18 @@ module Evaluator =
                   match left, right with
                   | Bool a, Bool b -> Bool (a || b)
                   | _ -> failwith "Invalid operand types for Or")
+        | RemoveFromList -> (fun left right -> 
+                                match left, right with
+                                | List l, value -> 
+                                    let updatedList = List.filter (fun v -> v <> value) l
+                                    List updatedList
+                                | _ -> failwith "Invalid operand types for RemoveFromList")
+        | AddToList -> (fun left right -> 
+                        match left, right with
+                        | List l, value -> 
+                            let updatedList = l @ [value]
+                            List updatedList
+                        | _ -> failwith "Invalid operand types for AddToList")
         
     let private returnEvalResult(res: ExecuteState, env: Environment) =
         match res with
