@@ -293,3 +293,48 @@ let tree_4_9 = Parser.parseCode code_4_9
 let result_4_9 = evaluateTree tree_4_9
 
 ln()
+
+printfn "Test 5: IO operations testing\n"
+
+let code_5_1 = "
+let f = file(\"/home/denis/trash/fsharp-lab-test/test.txt\")
+let t = f readFile \"text\" 
+dump t
+"
+pr(code_5_1)
+let tree_5_1 = Parser.parseCode code_5_1
+let result_5_1 = evaluateTree tree_5_1
+
+ln()
+
+let code_5_2 = "
+let f = file(\"/home/denis/trash/fsharp-lab-test/test.txt\")
+let lines = f readFile \"lines\" 
+dump lines
+"
+pr(code_5_2)
+let tree_5_2 = Parser.parseCode code_5_2
+let result_5_2 = evaluateTree tree_5_2
+
+ln()
+
+let code_5_3 = "
+let f = file(\"/home/denis/trash/fsharp-lab-test/test.txt\")
+f writeFile \"some_text_variable\" 
+"
+pr(code_5_3)
+let tree_5_3 = Parser.parseCode code_5_3
+let result_5_3 = evaluateTree tree_5_3
+
+ln()
+
+let code_5_4 = "
+let l = [1,2,3]
+let f = file(\"/home/denis/trash/fsharp-lab-test/test.txt\")
+f writeFile l 
+"
+pr(code_5_4)
+let tree_5_4 = Parser.parseCode code_5_4
+let result_5_4 = evaluateTree tree_5_4
+
+ln()

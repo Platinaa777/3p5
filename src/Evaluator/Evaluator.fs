@@ -1,5 +1,6 @@
 ﻿namespace Evaluator
 
+open System.IO
 open Parser
 
 type Function =
@@ -15,6 +16,20 @@ type ExecuteState =
 
 module Evaluator =
     let private unit = Int 0
+    let rec private valueToString (value: Value): string =
+        match value with
+        | Int t -> t.ToString() 
+        | Float f -> f.ToString("F3")
+        | Bool b -> b.ToString()
+        | Str s -> s
+        | List values ->
+            let elements = values
+                           |> List.map valueToString
+                           |> String.concat ", "
+            $"[{elements}]" // like in python [1, 2, 3]
+        | File s ->
+            let text = File.ReadAllText s
+            text
     let private funof (op: Operator) =
         match op with
         | Add -> (fun left right ->
@@ -121,6 +136,29 @@ module Evaluator =
                             let updatedList = l @ [value]
                             List updatedList
                         | _ -> failwith "Invalid operand types for AddToList")
+        | ReadFile -> (fun left right -> 
+                       match left, right with
+                       | File f, Str mode -> 
+                            match mode with
+                            | "lines" ->
+                                try
+                                    List (File.ReadLines(f) |> Seq.toList|> List.map Str)
+                                with
+                                | ex -> failwith $"Error reading lines from file {f}: {ex.Message}"
+                            | "text" ->
+                                try
+                                    Str (File.ReadAllText(f))
+                                with
+                                | ex -> failwith $"Error reading text from file {f}: {ex.Message}"
+                            | _ -> failwith $"Mode: {mode} for IO operation does not exist"
+                       | _ -> failwith "Invalid operand types for ReadFile")
+        | WriteFile -> (fun left right ->
+                       match left, right with
+                       | File path, content -> 
+                           let content = valueToString content
+                           File.WriteAllText(path, content)
+                           unit // return unit result
+                       | _ -> failwith "Invalid operand types for WriteFile")
         
     let private returnEvalResult(res: ExecuteState, env: Environment) =
         match res with
@@ -133,19 +171,7 @@ module Evaluator =
                match Map.tryFind name context with
                | Some value -> (Computed value, env)
                | None -> failwithf $"Variable %A{name} not found"
-               
-    let rec private valueToString (value: Value): string =
-        match value with
-        | Int t -> t.ToString() 
-        | Float f -> f.ToString("F3")
-        | Bool b -> b.ToString()
-        | Str s -> s
-        | List values ->
-            let elements = values
-                           |> List.map valueToString
-                           |> String.concat ", "
-            $"[{elements}]" // like in python [1, 2, 3]
-    
+                   
     let rec private eval (expr: Expression) (env: Environment): ExecuteState * Environment =
        match expr with
        | Literal(value) -> (Computed value, env)
