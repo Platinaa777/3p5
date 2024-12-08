@@ -28,6 +28,9 @@ type Operator =
     // condition operators
     | And
     | Or
+    // list operators
+    | AddToList
+    | RemoveFromList
         
 type Expression =
     | Literal of value:Value
@@ -118,6 +121,8 @@ module Parser =
             "!=", NotEqual
             "and", And
             "or", Or
+            "add", AddToList
+            "remove", RemoveFromList
         ]
     
     // for precedence (define in fparsec library)
@@ -165,6 +170,8 @@ module Parser =
     addBinaryOperator "!=" 3 al
     addBinaryOperator "and" 2 al
     addBinaryOperator "or" 1 al
+    addBinaryOperator "add" 4 al
+    addBinaryOperator "remove" 4 al
 
     let pLet: Parser<Expression, Unit> =
         pipe2

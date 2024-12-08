@@ -260,3 +260,36 @@ let tree_4_6 = Parser.parseCode code_4_6
 let result_4_6 = evaluateTree tree_4_6
 
 ln()
+
+let code_4_7 = "
+let l = [1, 2, 3]
+l <- (l add 5)
+dump l
+"
+pr(code_4_7)
+let tree_4_7 = Parser.parseCode code_4_7
+let result_4_7 = evaluateTree tree_4_7
+
+ln()
+
+let code_4_8 = "
+let l = [1, 2, 3]
+l <- (l remove 2)
+dump l
+"
+pr(code_4_8)
+let tree_4_8 = Parser.parseCode code_4_8
+let result_4_8 = evaluateTree tree_4_8
+
+ln()
+
+let code_4_9 = "
+let l1 = [1, 2, 3]
+let l2 = (l1 remove 2)
+dump l2
+"
+pr(code_4_9)
+let tree_4_9 = Parser.parseCode code_4_9
+let result_4_9 = evaluateTree tree_4_9
+
+ln()
