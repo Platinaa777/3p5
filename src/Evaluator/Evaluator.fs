@@ -2,13 +2,19 @@
 
 open Parser
 
-type Closure =
-    Closure of parameters:Id list * body:Expression list * env:Environment
+type Function =
+    Function of parameters:Id list * body:Expression list * env:Environment
 and
-    Environment = Environment of context: Map<Id, Value> * functions: Map<Id, Closure>
+    // context - variable context
+    // function - all functions in code
+    Environment = Environment of context: Map<Id, Value> * functions: Map<Id, Function>
+    
+type ExecuteState =
+    | Computed of Value
+    | Exited of Value 
 
 module Evaluator =
-    
+    let private unit = Int 0
     let private funof (op: Operator) =
         match op with
         | Add -> (fun left right ->
@@ -101,6 +107,18 @@ module Evaluator =
                   | Bool a, Bool b -> Bool (a || b)
                   | _ -> failwith "Invalid operand types for Or")
         
+    let private returnEvalResult(res: ExecuteState, env: Environment) =
+        match res with
+        | Computed value -> (Computed value, env)
+        | Exited value -> (Exited value, env)
+        
+    let private handleVarCase (name: Id) (env: Environment) =
+        match env with
+           | Environment(context, _) ->
+               match Map.tryFind name context with
+               | Some value -> (Computed value, env)
+               | None -> failwithf $"Variable %A{name} not found"
+               
     let rec private valueToString (value: Value): string =
         match value with
         | Int t -> t.ToString() 
@@ -108,54 +126,130 @@ module Evaluator =
         | Bool b -> b.ToString()
         | Str s -> s
     
-    let rec private eval (expr: Expression) (env: Environment): Value * Environment =
+    let rec private eval (expr: Expression) (env: Environment): ExecuteState * Environment =
        match expr with
-       | Literal(value) -> (value, env)
+       | Literal(value) -> (Computed value, env)
        | Variable(name) ->
-           match env with
-           | Environment(context, _) ->
-               match Map.tryFind name context with
-               | Some value -> (value, env)
-               | None -> failwithf $"Variable %A{name} not found"
+           handleVarCase name env
        | Operation(leftOperand, operator, rightOperand) ->
-           let leftExprResult, _ = eval leftOperand env
-           let rightExprResult, _ = eval rightOperand env
-           let func = funof operator
-           ((func leftExprResult rightExprResult), env)
+           handleOperationCase leftOperand operator rightOperand env
        | Condition(expression, trueScope, falseScope) ->
             let conditionResult, _ = eval expression env
             match conditionResult with
-            | Bool(true) ->
-                let _, finalEnv = evalScope trueScope env
-                (Bool(true), finalEnv)
-            | Bool(false) ->
-                let _, finalEnv = 
-                    match falseScope with
-                    | Some scope -> evalScope scope env
-                    | None -> (Int 0, env) // no else block
-                (Bool(false), finalEnv)
-            | _ -> failwith "Condition expression must evaluate to a boolean"
-       | ConsoleWrite(message) ->
+            | Computed value ->
+                match value with
+                | Bool(true) ->
+                    let v, finalEnv = evalScope trueScope env
+                    returnEvalResult(v, finalEnv)
+                | Bool(false) ->
+                    let v, finalEnv = 
+                        match falseScope with
+                        | Some scope ->
+                            let v2, finalEnv = evalScope scope env
+                            returnEvalResult(v2, finalEnv)
+                        | None -> returnEvalResult(Computed(unit), env) // no else block
+                    (v, finalEnv)
+                | _ -> failwith "Condition expression must evaluate to a boolean"
+            | _ -> failwith "Condition expression must be evaluated without result"
+       | Dump(message) ->
             let messageResult, _ = eval message env
-            let printStr = valueToString messageResult
-            printfn $"%A{printStr}"
-            (Int 0, env)
+            match messageResult with
+            | Computed(v) ->
+                let printStr = valueToString v
+                printfn $"%A{printStr}"
+                (Computed(unit), env)
+            | _ -> failwith "Dump cannot contain return expression"
        | Let(varName, valueExpr) ->
-            let value, _ = eval valueExpr env
+            let res, _ = eval valueExpr env
+            match res with
+            | Computed(value) ->
+                match env with
+                | Environment (context, functions) ->
+                    let updatedContext = Map.add varName value context
+                    let updatedEnv = Environment(updatedContext, functions)
+                    (res, updatedEnv)
+            | Exited(value) ->
+                match env with
+                | Environment (context, functions) ->
+                    let updatedContext = Map.add varName value context
+                    let updatedEnv = Environment(updatedContext, functions)
+                    (Computed value, updatedEnv)
+       | FuncDef(name, parameters, body) ->
             match env with
-            | Environment (context, functions) ->
-                let updatedContext = Map.add varName value context
-                let updatedEnv = Environment(updatedContext, functions)
-                (value, updatedEnv)
-       | FuncDef(name, parameters, body) -> failwith "todo"
-       | FuncCall(funcName, arguments) -> failwith "todo"
-
+            | Environment(context, functions) ->
+                let closure = Function(parameters, body, env)
+                let updatedFunctions = Map.add name closure functions
+                let updatedEnv = Environment(context, updatedFunctions)
+                (Computed unit, updatedEnv)
+       | FuncCall(funcName, arguments) ->
+            handleFuncCallCase funcName arguments env
+       | Return result ->
+           match result with
+               | Literal t -> (Exited t, env)
+               | Variable var ->
+                   let v, _ = handleVarCase var env
+                   match v with
+                   | Computed(v2) | Exited(v2) -> (Exited(v2), env)
+               | FuncCall(funcName, arguments) ->
+                   let v, _ = handleFuncCallCase funcName arguments env
+                   match v with
+                   | Computed(v2) | Exited(v2) -> (Exited(v2), env)
+               | Operation(leftOperand, operator, rightOperand) ->
+                   handleOperationCase leftOperand operator rightOperand env
+               | _ -> failwith $"Unhandled expression in Return: %A{result}"
     and
-        private evalScope (scope: Expression list) (initEnv: Environment) : Value * Environment =
-            List.fold (fun (_, env) expr -> eval expr env) (Int 0, initEnv) scope
+        private evalScope (scope: Expression list) (initEnv: Environment) : ExecuteState * Environment =
+            let rec evalWithControl (expressions: Expression list) (env: Environment): ExecuteState * Environment =
+                match expressions with
+                | [] -> (Computed unit, env) // If there are no expressions, return the standard value
+                | expr::rest ->
+                    match eval expr env with
+                    | Exited value, newEnv -> (Exited value, newEnv) // interrupt execution and return Exited
+                    | Computed value, newEnv ->
+                        match expr with
+                        | Return _ -> (Exited value, newEnv) // expr is Return value, thus, we have to calculate body and then return it as Exited value
+                        | _ -> evalWithControl rest newEnv // continue eval
+            evalWithControl scope initEnv
+    and
+        private handleFuncCallCase (funcName: Id) (arguments: Expression list) (env: Environment) =
+        match env with
+            // current context and functions
+            | Environment(context, functions) ->
+                match Map.tryFind funcName functions with
+                | Some (Function(parameters, body, funcEnv)) ->
+                    if List.length parameters <> List.length arguments then
+                        failwithf $"Function %s{funcName} called with incorrect number of arguments"
+                    else
+                        // eval all args in function
+                        let evaluatedArgs = 
+                            arguments
+                            |> List.map (fun arg -> fst (eval arg env))
+                        let newContext =
+                            List.zip parameters evaluatedArgs
+                            |> List.fold (fun acc (param, value) ->
+                                match value with
+                                | Computed v -> Map.add param v acc
+                                | _ -> failwith "Error while creating new closure context"
+                            ) context
+                        let newEnv = Environment(newContext, functions)
+                        let result, e = evalScope body newEnv
+                        (result, e)
+                | None ->
+                    failwithf $"Function %s{funcName} not found"
+    and
+        private handleOperationCase (left: Expression) (op: Operator) (right: Expression) (env: Environment) =
+           let leftExprResult, _ = eval left env
+           let rightExprResult, _ = eval right env
+           match leftExprResult, rightExprResult with
+           | Computed value1, Computed value2 ->
+               let func = funof op
+               let value = func value1 value2 
+               (Computed value, env)
+           | _ -> failwith "Operation expression should contain only calculating expression without return"
+           
     
     let evaluate (astTree: Expression list) =
         let initEnv = Environment(Map.empty, Map.empty)
-        let finalEnv = List.fold (fun (_, env) expr -> eval expr env) (Int 0, initEnv) astTree
+        let finalEnv = List.fold (fun (_, env) expr -> eval expr env) (Computed unit, initEnv) astTree
         finalEnv
         

@@ -142,13 +142,13 @@ if x == 5 {
 printfn $"\n%A{cond4}\n"
 let x6_4 = test Parser.pExpr cond4
 
-printfn "\nTest 7: ConsoleWrite testing\n"
+printfn "\nTest 7: dump testing\n"
 
-printfn "case: ConsoleWrite x + 5"
-let x7_1 = test Parser.pExpr "ConsoleWrite x + 5"
+printfn "case: dump x + 5"
+let x7_1 = test Parser.pExpr "dump x + 5"
 
-printfn "case: ConsoleWrite (x + 5)"
-let x7_2 = test Parser.pExpr "ConsoleWrite (x + 5)"
+printfn "case: dump (x + 5)"
+let x7_2 = test Parser.pExpr "dump (x + 5)"
 
 printfn "\nTest 8: FuncDef parsing\n"
 
