@@ -152,3 +152,21 @@ let tree_3_3 = Parser.parseCode code_3_3
 let result_3_3 = evaluateTree tree_3_3
 
 ln()
+
+let code_3_4 = "
+let x = 1
+
+func f [] {
+    x <- x + x
+}
+
+f[]
+dump x
+f[]
+dump x
+"
+pr(code_3_4)
+let tree_3_4 = Parser.parseCode code_3_4
+let result_3_4 = evaluateTree tree_3_4
+
+ln()
