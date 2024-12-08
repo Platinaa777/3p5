@@ -8,7 +8,7 @@ Python like programming language
 * [x] Recursion
 * [ ] Lazy evaluation
 * [x] Functions
-* [x] Closures
+* [ ] Closures
 * [x] IO operations
 * [x] Lists / Sequences
 * [x] Library functions: lists/sequences
