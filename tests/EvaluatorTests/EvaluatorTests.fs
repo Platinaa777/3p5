@@ -170,3 +170,23 @@ let tree_3_4 = Parser.parseCode code_3_4
 let result_3_4 = evaluateTree tree_3_4
 
 ln()
+
+let code_3_5 = "
+let x = 5 + 2 * 5
+dump x
+"
+pr(code_3_5)
+let tree_3_5 = Parser.parseCode code_3_5
+let result_3_5 = evaluateTree tree_3_5
+
+ln()
+
+let code_3_6 = "
+let x = (5 + 2) * 5
+dump x
+"
+pr(code_3_6)
+let tree_3_6 = Parser.parseCode code_3_6
+let result_3_6 = evaluateTree tree_3_6
+
+ln()
