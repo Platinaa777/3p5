@@ -31,6 +31,8 @@ type Operator =
     // list operators
     | AddToList
     | RemoveFromList
+    | ReadFile
+    | WriteFile
         
 type Expression =
     | Literal of value:Value
@@ -123,6 +125,8 @@ module Parser =
             "or", Or
             "add", AddToList
             "remove", RemoveFromList
+            "readFile", ReadFile
+            "writeFile", WriteFile
         ]
     
     // for precedence (define in fparsec library)
@@ -172,6 +176,8 @@ module Parser =
     addBinaryOperator "or" 1 al
     addBinaryOperator "add" 4 al
     addBinaryOperator "remove" 4 al
+    addBinaryOperator "read" 5 al
+    addBinaryOperator "remove" 5 al
 
     let pLet: Parser<Expression, Unit> =
         pipe2
