@@ -91,7 +91,7 @@ let x = 5
 let z = 123
 if (true) {
     dump x + z
-    let x = 100
+    x <- 100
     dump x + z
 } else {
     dump \"oh no...\"
