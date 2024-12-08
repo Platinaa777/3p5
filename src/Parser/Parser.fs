@@ -38,6 +38,7 @@ type Expression =
     | FuncDef of name:Id * parameters:Id list * body:Expression list
     | FuncCall of func_name:Id * arguments:Expression list
     | Return of result:Expression
+    | Assign of var_name:Id * valueExpr:Expression
 
 module Parser =
     let ss = spaces // only for me
@@ -155,6 +156,12 @@ module Parser =
             (fun name expr ->
                 // printfn $"name: %A{name} ||| expr: %A{expr}" // debugging
                 Let(name, expr))
+
+    let pAssign: Parser<Expression, Unit> =
+        pipe2
+            (ss >>. pVar .>> pStr "<-")
+            pExpr
+            (fun name expr -> Assign(name, expr))
             
     let pScope: Parser<Expression list, Unit> =
         ss >>. between (pStr "{") (pStr "}") (many pExpr)
@@ -180,6 +187,7 @@ module Parser =
         pStr "return" >>. pExpr |>> Return
                     
     do pExprRef.Value <- choice [
+            attempt pAssign;
             attempt pLet
             attempt pDump;
             attempt pFuncDef;

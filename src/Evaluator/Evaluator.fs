@@ -174,6 +174,16 @@ module Evaluator =
                     let updatedContext = Map.add varName value context
                     let updatedEnv = Environment(updatedContext, functions)
                     (Computed value, updatedEnv)
+        | Assign(var_name, valueExpr) ->
+            let valueResult, updatedEnv = eval valueExpr env
+            match valueResult with
+            | Computed(value) ->
+                match updatedEnv with
+                | Environment(context, functions) ->
+                    let newContext = Map.add var_name value context
+                    let newEnv = Environment(newContext, functions)
+                    (Computed(value), newEnv)
+            | _ -> failwith "Failed to compute value for assignment"
        | FuncDef(name, parameters, body) ->
             match env with
             | Environment(context, functions) ->
