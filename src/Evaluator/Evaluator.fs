@@ -24,6 +24,7 @@ module Evaluator =
                     | Int a, Float b -> Float(float a + b)
                     | Float a, Int b -> Float(a + float b)
                     | Str s1, Str s2 -> Str (s1 + s2)
+                    | List l1, List l2 -> List (l1 @ l2)
                     | _ -> failwith "Invalid operand types for Add")
         | Subtract -> (fun left right ->
                     match left, right with
@@ -39,6 +40,7 @@ module Evaluator =
                     | Int a, Float b -> Float(float a * b)
                     | Float a, Int b -> Float(a * float b)
                     | Str s, Int i -> Str (String.replicate i s)
+                    | List l1, List l2 -> List (Set.toList (Set.ofList l1 |> Set.union (Set.ofList l2)))
                     | _ -> failwith "Invalid operand types for Multiply")
         | Divide -> (fun left right ->
                     match left, right with
@@ -47,6 +49,7 @@ module Evaluator =
                     | Float a, Float b -> Float(a / b)
                     | Int a, Float b -> Float(float a / b)
                     | Float a, Int b -> Float(a / float b)
+                    | List l1, List l2 -> List (Set.toList (Set.ofList l1 |> Set.intersect (Set.ofList l2)))
                     | _ -> failwith "Invalid operand types for Divide")
         | Mod -> (fun left right ->
                     match left, right with
@@ -125,6 +128,11 @@ module Evaluator =
         | Float f -> f.ToString("F3")
         | Bool b -> b.ToString()
         | Str s -> s
+        | List values ->
+            let elements = values
+                           |> List.map valueToString
+                           |> String.concat ", "
+            $"[{elements}]" // like in python [1, 2, 3]
     
     let rec private eval (expr: Expression) (env: Environment): ExecuteState * Environment =
        match expr with
@@ -150,7 +158,7 @@ module Evaluator =
                         | None -> returnEvalResult(Computed(unit), env) // no else block
                     (v, finalEnv)
                 | _ -> failwith "Condition expression must evaluate to a boolean"
-            | _ -> failwith "Condition expression must be evaluated without result"
+            | _ -> failwith "Condition expression failed to evaluate properly"
        | Dump(message) ->
             let messageResult, _ = eval message env
             match messageResult with
@@ -226,7 +234,7 @@ module Evaluator =
             // current context and functions
             | Environment(context, functions) ->
                 match Map.tryFind funcName functions with
-                | Some (Function(parameters, body, funcEnv)) ->
+                | Some (Function(parameters, body, _)) ->
                     if List.length parameters <> List.length arguments then
                         failwithf $"Function %s{funcName} called with incorrect number of arguments"
                     else

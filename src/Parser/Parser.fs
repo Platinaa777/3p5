@@ -10,6 +10,7 @@ type Value =
     | Float of float
     | Bool of bool
     | Str of string
+    | List of Value list
     
 type Operator =
     | Add
@@ -44,6 +45,8 @@ module Parser =
     let ss = spaces // only for me
     let pStr str = pstring str .>> ss // for simplicity in code below
     
+    let pValue, pValueRef = createParserForwardedToRef<Value, Unit>()
+    
     // Numbers parsers
     let pInt: Parser<Value, Unit> =
         pint32 .>> notFollowedBy (pchar '.') .>> ss |>> Int
@@ -66,13 +69,27 @@ module Parser =
             Str s)
         .>> ss
 
+    let areSameType (values: Value list) =
+        match values with
+        | [] -> true // empty list is correct
+        | x::xs -> xs |> List.forall (fun v -> v.GetType() = x.GetType())
+    
+    let pList: Parser<Value, Unit> =
+        between (pStr "[") (pStr "]") (sepBy pValue (pStr ",")) 
+        >>= fun values ->
+            if areSameType values then
+                preturn (List values)
+            else
+                fail "All elements in the list must be of the same type"
+
     // common parser for all Value types
-    let pValue: Parser<Value, Unit> =
+    do pValueRef.Value <-
         choice [
             attempt pInt;
             pFloat;
             pBool;
-            pString
+            pString;
+            pList;
         ]
         
     let pExpr, pExprRef = createParserForwardedToRef<Expression, Unit>()

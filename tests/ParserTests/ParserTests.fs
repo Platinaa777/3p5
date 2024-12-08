@@ -242,3 +242,26 @@ func f2 [x,y] {
 
 printfn $"\n%A{manyCode3}\n"
 let x10_3 = testMany Parser.pExpr manyCode3
+
+printfn "\nTest 11: List parsing\n"
+
+let list1 = "
+let l = [1,2,3]
+"
+
+printfn $"\n%A{list1}\n"
+let x11_1 = testMany Parser.pExpr list1
+
+let list2 = "
+let l = [\"H\",\"S\",\"E\"]
+"
+
+printfn $"\n%A{list2}\n"
+let x11_2 = testMany Parser.pExpr list2
+
+let list3 = "
+let l = [true,true,false]
+"
+
+printfn $"\n%A{list3}\n"
+let x11_3 = testMany Parser.pExpr list3

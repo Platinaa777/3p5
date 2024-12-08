@@ -190,3 +190,73 @@ let tree_3_6 = Parser.parseCode code_3_6
 let result_3_6 = evaluateTree tree_3_6
 
 ln()
+
+printfn "Test 4: List testing\n"
+
+let code_4_1 = "
+let l = [1, 2, 3]
+dump l
+"
+pr(code_4_1)
+let tree_4_1 = Parser.parseCode code_4_1
+let result_4_1 = evaluateTree tree_4_1
+
+ln()
+
+let code_4_2 = "
+let l1 = [1, 2, 3]
+let l2 = [3,4,5]
+dump (l1 + l2)
+"
+pr(code_4_2)
+let tree_4_2 = Parser.parseCode code_4_2
+let result_4_2 = evaluateTree tree_4_2
+
+ln()
+
+let code_4_3 = "
+let l1 = [1, 2, 3]
+let l2 = [3,4,5]
+dump (l1 * l2)
+"
+pr(code_4_3)
+let tree_4_3 = Parser.parseCode code_4_3
+let result_4_3 = evaluateTree tree_4_3
+
+ln()
+
+let code_4_4 = "
+let l1 = [1, 2, 3]
+let l2 = [1, 2]
+dump (l1 / l2)
+"
+pr(code_4_4)
+let tree_4_4 = Parser.parseCode code_4_4
+let result_4_4 = evaluateTree tree_4_4
+
+ln()
+
+let code_4_5 = "
+let l1 = [1, 2, 3]
+let l2 = l1
+dump l2
+"
+pr(code_4_5)
+let tree_4_5 = Parser.parseCode code_4_5
+let result_4_5 = evaluateTree tree_4_5
+
+ln()
+
+let code_4_6 = "
+func f[] {
+    let x = [1, 2]
+    return x
+}
+let l1 = f[]
+dump l1
+"
+pr(code_4_6)
+let tree_4_6 = Parser.parseCode code_4_6
+let result_4_6 = evaluateTree tree_4_6
+
+ln()
