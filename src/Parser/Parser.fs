@@ -1,5 +1,6 @@
 ﻿namespace Parser
 
+open System.IO
 open FParsec
 open System
 
@@ -11,6 +12,7 @@ type Value =
     | Bool of bool
     | Str of string
     | List of Value list
+    | File of string
     
 type Operator =
     | Add
@@ -31,6 +33,7 @@ type Operator =
     // list operators
     | AddToList
     | RemoveFromList
+    // IO operators
     | ReadFile
     | WriteFile
         
@@ -86,6 +89,25 @@ module Parser =
                 preturn (List values)
             else
                 fail "All elements in the list must be of the same type"
+                
+    let isFileExists (path: string) : bool = // check path is valid
+        try
+            File.Exists path
+        with
+        | _ -> false
+
+    let isValidPathChar(c: char) : bool = Char.IsLetterOrDigit(c) || "-_/\\.~".Contains(c)
+    
+    let pPath: Parser<string, Unit> = // parser for path
+        (manyCharsTill (satisfy isValidPathChar) (pchar '"')) >>= fun path ->
+            if isFileExists path then
+                preturn path
+            else
+                printfn $"Invalid file path %A{path}"
+                fail "File does not exist"
+    
+    let pFile: Parser<Value, Unit> =
+        ss >>. pStr "file(\"" >>. pPath .>> pStr ")" |>> File
 
     // common parser for all Value types
     do pValueRef.Value <-
@@ -95,6 +117,7 @@ module Parser =
             pBool;
             pString;
             pList;
+            pFile;
         ]
         
     let pExpr, pExprRef = createParserForwardedToRef<Expression, Unit>()
@@ -176,8 +199,8 @@ module Parser =
     addBinaryOperator "or" 1 al
     addBinaryOperator "add" 4 al
     addBinaryOperator "remove" 4 al
-    addBinaryOperator "read" 5 al
-    addBinaryOperator "remove" 5 al
+    addBinaryOperator "readFile" 5 al
+    addBinaryOperator "writeFile" 5 al
 
     let pLet: Parser<Expression, Unit> =
         pipe2

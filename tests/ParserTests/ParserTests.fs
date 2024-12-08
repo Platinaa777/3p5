@@ -265,3 +265,19 @@ let l = [true,true,false]
 
 printfn $"\n%A{list3}\n"
 let x11_3 = testMany Parser.pExpr list3
+
+printfn "\nTest 12: IO parsing\n"
+
+let f1 = "
+let l = file(\"/home/denis/trash/fsharp-lab-test/test.txt\")
+"
+
+printfn $"\n%A{f1}\n"
+let x12_1 = testMany Parser.pExpr f1
+
+let f2 = "
+let l = file(\"$invalid_path$\")
+"
+
+printfn $"\n%A{f2}\n"
+let x12_2 = testMany Parser.pExpr f2

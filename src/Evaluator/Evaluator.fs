@@ -27,6 +27,9 @@ module Evaluator =
                            |> List.map valueToString
                            |> String.concat ", "
             $"[{elements}]" // like in python [1, 2, 3]
+        | File s ->
+            let text = File.ReadAllText s
+            text
     let private funof (op: Operator) =
         match op with
         | Add -> (fun left right ->
@@ -135,23 +138,23 @@ module Evaluator =
                         | _ -> failwith "Invalid operand types for AddToList")
         | ReadFile -> (fun left right -> 
                        match left, right with
-                           | Str path, Str mode -> 
-                                match mode with
-                                | "lines" ->
-                                    try
-                                        List (File.ReadLines(path) |> Seq.toList|> List.map Str)
-                                    with
-                                    | ex -> failwith $"Error reading lines from file {path}: {ex.Message}"
-                                | "text" ->
-                                    try
-                                        Str (File.ReadAllText(path))
-                                    with
-                                    | ex -> failwith $"Error reading text from file {path}: {ex.Message}"
-                                | _ -> failwith $"Mode: {mode} for IO operation does not exist"
-                           | _ -> failwith "Invalid operand types for ReadFile")
-        | WriteFile -> (fun left right -> 
+                       | File f, Str mode -> 
+                            match mode with
+                            | "lines" ->
+                                try
+                                    List (File.ReadLines(f) |> Seq.toList|> List.map Str)
+                                with
+                                | ex -> failwith $"Error reading lines from file {f}: {ex.Message}"
+                            | "text" ->
+                                try
+                                    Str (File.ReadAllText(f))
+                                with
+                                | ex -> failwith $"Error reading text from file {f}: {ex.Message}"
+                            | _ -> failwith $"Mode: {mode} for IO operation does not exist"
+                       | _ -> failwith "Invalid operand types for ReadFile")
+        | WriteFile -> (fun left right ->
                        match left, right with
-                       | Str path, content -> 
+                       | File path, content -> 
                            let content = valueToString content
                            File.WriteAllText(path, content)
                            unit // return unit result
