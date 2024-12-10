@@ -10,7 +10,7 @@ let evaluateTree (resultTree: Result<Expression list, string>) =
         (Computed (Int 0), Environment(Map.empty, Map.empty))
         
 let ln () = printfn "============="
-let pr (str: string) = printfn $"%A{str}"
+let pr (str: string) = printfn $"Input:\n%A{str}\nOutput:"
 
 printfn "Test 1: Evaluate simple cases\n"
 
