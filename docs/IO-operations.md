@@ -3,7 +3,7 @@
 ### Code `readFile "text"`
 
 ```python
-let f = file("/home/denis/trash/fsharp-lab-test/test.txt")
+let f = file("/home/denis/fsharp-lab-test/test.txt")
 let t = f readFile "text" 
 dump t
 ```
@@ -22,7 +22,7 @@ Have test1 and test2 on different lines because separater was `\n`
 ### Code `readFile "lines"`
 
 ```python
-let f = file("/home/denis/trash/fsharp-lab-test/test.txt")
+let f = file("/home/denis/fsharp-lab-test/test.txt")
 let lines = f readFile "lines" 
 dump lines
 ```
@@ -38,7 +38,7 @@ dump lines
 ### Code `writeFile`
 
 ```python
-let f = file("/home/denis/trash/fsharp-lab-test/test.txt")
+let f = file("/home/denis/fsharp-lab-test/test.txt")
 f writeFile "some_text_variable" 
 ```
 
@@ -53,7 +53,7 @@ but in file we can notice - `some_test_variable`
 
 ```python
 let l = [1,2,3]
-let f = file("/home/denis/trash/fsharp-lab-test/test.txt")
+let f = file("/home/denis/fsharp-lab-test/test.txt")
 f writeFile l 
 ```
 
